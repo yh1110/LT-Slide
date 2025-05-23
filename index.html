@@ -1,77 +1,134 @@
 <!DOCTYPE html>
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<meta
-			name="viewport"
-			content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-		/>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
 
-		<title>Next.jsでのcookieの扱い方</title>
+    <title>Next.jsのcookieで詰まった話</title>
 
-		<link rel="stylesheet" href="dist/reset.css" />
-		<link rel="stylesheet" href="dist/reveal.css" />
-		<link rel="stylesheet" href="dist/theme/black.css" />
+    <link rel="stylesheet" href="dist/reset.css" />
+    <link rel="stylesheet" href="dist/reveal.css" />
+    <link rel="stylesheet" href="dist/theme/black.css" />
 
-		<!-- Theme used for syntax highlighted code -->
-		<link rel="stylesheet" href="plugin/highlight/monokai.css" />
-	</head>
-	<body>
-		<div class="reveal">
-			<div class="slides">
-				<section>
-					<h2>LT登壇のすすめ</h2>
-					<p>たった5分でも、世界が変わる</p>
-				</section>
+    <!-- Highlight.js Theme -->
+    <link rel="stylesheet" href="plugin/highlight/monokai.css" />
+  </head>
+  <body>
+    <div class="reveal">
+      <div class="slides">
+        <section>
+          <h2>Next.js(App Router)におけるCookieの扱い方</h2>
+          <p>～Server Actionsとコンポーネント間の違い～</p>
+        </section>
 
-				<!-- Slide 2 -->
-				<section>
-					<h3>自己紹介</h3>
-					<ul>
-						<li>名前：◯◯</li>
-						<li>職種：Webエンジニア</li>
-						<li>登壇歴：初LTです！</li>
-					</ul>
-				</section>
+        <section>
+          <h3>自己紹介</h3>
+          <p>名前：細田 靖人</p>
+          <p>GitHub：yh1110</p>
+          <p>職種：Webエンジニア</p>
+          <p>登壇歴：今回が初めて</p>
+        </section>
 
-				<!-- Slide 3 -->
-				<section>
-					<h3>なぜLTに出ようと思ったか？</h3>
-					<p>アウトプットの習慣を作りたかった<br />同じ技術に興味を持つ人と話したかった</p>
-				</section>
+        <section>
+          <h3>なぜLTに出ようと思ったか？</h3>
+          <p>なんかおもしろそうだったから</p>
+        </section>
 
-				<!-- Slide 4 -->
-				<section>
-					<h3>準備してよかったこと</h3>
-					<ul>
-						<li>資料を短くまとめる力がついた</li>
-						<li>話すことで理解が深まった</li>
-						<li>優しい先輩たちに助けられた</li>
-					</ul>
-				</section>
+        <section>
+          <h3>今回のテーマ</h3>
+          <ul>
+            <li>Server ActionsでのCookieの扱い方</li>
+            <li>クライアントコンポーネントとサーバーコンポーネントでの違い</li>
+          </ul>
+        </section>
 
-				<!-- Slide 5 -->
-				<section>
-					<h2>まとめ</h2>
-					<p>LT登壇、おすすめです！<br />アウトプットの第一歩にぜひ🔥</p>
-				</section>
-			</div>
-		</div>
+        <section>
+          <h3>前提知識</h3>
+          <ul>
+            <li><code>@next/headers</code>の<code>cookies</code>関数を使う</li>
+            <li>今回は<code>document.cookie</code>の話ではない</li>
+          </ul>
+        </section>
 
-		<script src="dist/reveal.js"></script>
-		<script src="plugin/notes/notes.js"></script>
-		<script src="plugin/markdown/markdown.js"></script>
-		<script src="plugin/highlight/highlight.js"></script>
-		<script>
-			// More info about initialization & config:
-			// - https://revealjs.com/initialization/
-			// - https://revealjs.com/config/
-			Reveal.initialize({
-				hash: true,
+        <section>
+          <h3>Cookieのセットが可能な場所</h3>
+          <ul>
+            <li>Server Actions</li>
+            <li>Route Handler</li>
+          </ul>
+          <p>理由：HTTPレスポンスヘッダーの<code>Set-Cookie</code>が必要なため</p>
+        </section>
 
-				// Learn about plugins: https://revealjs.com/plugins/
-				plugins: [RevealMarkdown, RevealHighlight, RevealNotes],
-			});
-		</script>
-	</body>
+        <section>
+          <h3>Server Actionsでの例</h3>
+          <pre><code class="language-ts">
+'use server';
+import { cookies } from 'next/headers';
+
+export async function setCookies() {
+  const cookieStore = cookies();
+  cookieStore.set('key', 'value');
+}
+        </code></pre>
+        </section>
+
+        <section>
+          <h3>Cookieがセットできない場所</h3>
+          <ul>
+            <li>サーバーコンポーネント（SSRではセット不可）</li>
+            <li>クライアントコンポーネント（<code>@next/headers</code>使用不可）</li>
+          </ul>
+        </section>
+
+        <section>
+          <h3>Client Componentでエラーになる例</h3>
+          <pre><code class="language-ts">
+'use client';
+import { cookies } from 'next/headers';
+
+// これはエラーになる
+const token = cookies().get('token')?.value;
+        </code></pre>
+        </section>
+
+        <section>
+          <h3>Cookie取得は柔軟に可能</h3>
+          <ul>
+            <li>サーバーコンポーネント：リクエストヘッダー経由</li>
+            <li>クライアントコンポーネント：<code>document.cookie</code></li>
+          </ul>
+        </section>
+
+        <section>
+          <h3>まとめ</h3>
+          <ul>
+            <li>CookieのセットはServer ActionsまたはRoute Handlerのみ可能</li>
+            <li><code>cookies().set()</code>は直接Server Action内で呼び出す必要がある</li>
+            <li>Cookie取得は方法が異なるがサーバー・クライアントどちらでも可能</li>
+          </ul>
+        </section>
+
+        <section>
+          <h3>参考資料</h3>
+          <a href="https://qiita.com/yh1110/items/e0f236742f918f22cc4f" target="_blank">
+            Next.js(App Router) cookieの扱い方
+          </a>
+        </section>
+      </div>
+    </div>
+
+    <script src="dist/reveal.js"></script>
+    <script src="plugin/notes/notes.js"></script>
+    <script src="plugin/markdown/markdown.js"></script>
+    <script src="plugin/highlight/highlight.js"></script>
+    <script>
+      Reveal.initialize({
+        hash: true,
+        plugins: [RevealMarkdown, RevealHighlight, RevealNotes],
+      });
+    </script>
+  </body>
 </html>
